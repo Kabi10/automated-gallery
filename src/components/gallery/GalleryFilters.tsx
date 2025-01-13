@@ -1,65 +1,89 @@
 import React from 'react';
-import { commonColors, getColorName } from '@/utils/colors';
 
-export interface GalleryFiltersProps {
-  onColorSelect: (color: string | null) => void;
-  onOrientationSelect: (orientation: string | null) => void;
-  selectedColor: string | null;
-  selectedOrientation: string | null;
+interface GalleryFiltersProps {
+  onCategorySelect: (category: string | null) => void;
+  onLanguageSelect: (language: string | null) => void;
+  selectedCategory: string | null;
+  selectedLanguage: string | null;
 }
 
-export const GalleryFilters: React.FC<GalleryFiltersProps> = ({
-  onColorSelect,
-  onOrientationSelect,
-  selectedColor,
-  selectedOrientation,
-}) => {
+const CATEGORIES = [
+  { id: 'tech', name: 'Technology' },
+  { id: 'startup', name: 'Startups' },
+  { id: 'ai', name: 'AI/ML' },
+  { id: 'product', name: 'Products' }
+];
+
+const LANGUAGES = [
+  { id: 'en', name: 'English' },
+  { id: 'ru', name: 'Russian' }
+];
+
+export function GalleryFilters({
+  onCategorySelect,
+  onLanguageSelect,
+  selectedCategory,
+  selectedLanguage
+}: GalleryFiltersProps) {
   return (
-    <div className="mb-6 space-y-4">
-      {/* Color filters */}
+    <div className="mb-8 space-y-4">
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Filter by Color</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-3">Categories</h3>
         <div className="flex flex-wrap gap-2">
-          {commonColors.map((color: string) => (
+          <button
+            onClick={() => onCategorySelect(null)}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              selectedCategory === null
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            All
+          </button>
+          {CATEGORIES.map((category) => (
             <button
-              key={color}
-              onClick={() => onColorSelect(selectedColor === color ? null : color)}
-              className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${
-                selectedColor === color ? 'border-blue-500 scale-110' : 'border-gray-200'
+              key={category.id}
+              onClick={() => onCategorySelect(category.id)}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                selectedCategory === category.id
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
-              style={{ backgroundColor: color }}
-              title={getColorName(color)}
-            />
+            >
+              {category.name}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Orientation filters */}
       <div>
-        <h3 className="text-sm font-medium text-gray-700 mb-2">Filter by Orientation</h3>
-        <div className="flex gap-2">
+        <h3 className="text-lg font-medium text-gray-900 mb-3">Languages</h3>
+        <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => onOrientationSelect(selectedOrientation === 'landscape' ? null : 'landscape')}
-            className={`px-4 py-2 rounded-md text-sm ${
-              selectedOrientation === 'landscape'
+            onClick={() => onLanguageSelect(null)}
+            className={`px-4 py-2 rounded-md text-sm font-medium ${
+              selectedLanguage === null
                 ? 'bg-blue-500 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
-            Landscape
+            All
           </button>
-          <button
-            onClick={() => onOrientationSelect(selectedOrientation === 'portrait' ? null : 'portrait')}
-            className={`px-4 py-2 rounded-md text-sm ${
-              selectedOrientation === 'portrait'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            Portrait
-          </button>
+          {LANGUAGES.map((language) => (
+            <button
+              key={language.id}
+              onClick={() => onLanguageSelect(language.id)}
+              className={`px-4 py-2 rounded-md text-sm font-medium ${
+                selectedLanguage === language.id
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {language.name}
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
-}; 
+} 
