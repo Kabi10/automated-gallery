@@ -1,5 +1,5 @@
 import React from 'react';
-import { commonColors } from '@/utils/colors';
+import { commonColors, getColorName } from '@/utils/colors';
 
 export interface GalleryFiltersProps {
   onColorSelect: (color: string | null) => void;
@@ -20,7 +20,7 @@ export const GalleryFilters: React.FC<GalleryFiltersProps> = ({
       <div>
         <h3 className="text-sm font-medium text-gray-700 mb-2">Filter by Color</h3>
         <div className="flex flex-wrap gap-2">
-          {commonColors.map((color) => (
+          {commonColors.map((color: string) => (
             <button
               key={color}
               onClick={() => onColorSelect(selectedColor === color ? null : color)}
@@ -28,7 +28,7 @@ export const GalleryFilters: React.FC<GalleryFiltersProps> = ({
                 selectedColor === color ? 'border-blue-500 scale-110' : 'border-gray-200'
               }`}
               style={{ backgroundColor: color }}
-              title={color}
+              title={getColorName(color)}
             />
           ))}
         </div>
