@@ -1,63 +1,91 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { GalleryGrid } from '@/components/gallery/GalleryGrid';
+import React from 'react';
 import { GalleryFilters } from '@/components/gallery/GalleryFilters';
+import { GalleryGrid } from '@/components/gallery/GalleryGrid';
+import { analyzeImage } from '@/utils/gemini';
 
-// Mock data for initial testing
-const MOCK_ITEMS = Array.from({ length: 12 }, (_, i) => ({
-  id: `item-${i}`,
-  title: `Gallery Item ${i + 1}`,
-  excerpt: `This is a beautiful image showcasing nature's wonders.`,
-  imageUrl: `https://picsum.photos/seed/${i}/800/600`,
-  category: i % 2 === 0 ? 'Nature' : 'Architecture',
-}));
+// Mock data for gallery items
+const mockGalleryItems = [
+  {
+    id: '1',
+    title: 'Mountain Landscape',
+    excerpt: 'A beautiful mountain landscape at sunset',
+    imageUrl: 'https://picsum.photos/800/600?random=1',
+    category: 'Nature',
+    tags: ['mountains', 'sunset', 'landscape'],
+  },
+  {
+    id: '2',
+    title: 'Urban Architecture',
+    excerpt: 'Modern city buildings reaching for the sky',
+    imageUrl: 'https://picsum.photos/800/600?random=2',
+    category: 'Architecture',
+    tags: ['city', 'buildings', 'modern'],
+  },
+  // Add more mock items as needed
+];
 
 export default function Home() {
-  const [items, setItems] = useState(MOCK_ITEMS);
-  const [loading, setLoading] = useState(false);
+  const [items, setItems] = React.useState(mockGalleryItems);
+  const [selectedColor, setSelectedColor] = React.useState<string | null>(null);
+  const [selectedOrientation, setSelectedOrientation] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
 
-  const handleLoadMore = useCallback(() => {
+  // Function to load more items
+  const loadMore = async () => {
     setLoading(true);
-    // Simulate loading more items
-    setTimeout(() => {
-      const newItems = Array.from({ length: 6 }, (_, i) => ({
-        id: `item-${items.length + i}`,
-        title: `Gallery Item ${items.length + i + 1}`,
-        excerpt: `This is a beautiful image showcasing nature's wonders.`,
-        imageUrl: `https://picsum.photos/seed/${items.length + i}/800/600`,
-        category: i % 2 === 0 ? 'Nature' : 'Architecture',
+    try {
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Add new items with AI analysis
+      const newItems = await Promise.all(mockGalleryItems.map(async (item) => {
+        const aiAnalysis = await analyzeImage(item.imageUrl);
+        return { ...item, aiAnalysis };
       }));
-      setItems(prev => [...prev, ...newItems]);
+      
+      setItems(prevItems => [...prevItems, ...newItems]);
+    } catch (error) {
+      console.error('Error loading more items:', error);
+    } finally {
       setLoading(false);
-    }, 1000);
-  }, [items.length]);
-
-  const handleFilterByColor = (color: string) => {
-    // Implement color filtering logic
-    console.log('Filtering by color:', color);
+    }
   };
 
-  const handleFilterByOrientation = (orientation: 'landscape' | 'portrait') => {
-    // Implement orientation filtering logic
-    console.log('Filtering by orientation:', orientation);
-  };
+  // Filter items based on selected color and orientation
+  const filteredItems = items.filter(item => {
+    if (selectedColor && (!item.aiAnalysis?.colors.includes(selectedColor))) {
+      return false;
+    }
+    if (selectedOrientation) {
+      // Add orientation filtering logic here
+      return true;
+    }
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900">Automated Gallery</h1>
-          <p className="mt-2 text-gray-600">Discover fascinating stories and images</p>
+        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl font-bold text-gray-900">AI-Powered Gallery</h1>
         </div>
       </header>
-      
+
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <GalleryFilters 
-          onFilterByColor={handleFilterByColor}
-          onFilterByOrientation={handleFilterByOrientation}
+        <GalleryFilters
+          onColorSelect={setSelectedColor}
+          onOrientationSelect={setSelectedOrientation}
+          selectedColor={selectedColor}
+          selectedOrientation={selectedOrientation}
         />
-        <GalleryGrid items={items} onLoadMore={handleLoadMore} />
+        
+        <GalleryGrid
+          items={filteredItems}
+          onLoadMore={loadMore}
+          loading={loading}
+        />
       </main>
     </div>
   );

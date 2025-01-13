@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useInView } from 'react-intersection-observer';
-import { generateAIDescription } from '@/utils/ai';
 import { GalleryItem } from './GalleryItem';
+import { ImageAnalysisResult } from '@/utils/gemini';
 
 interface GalleryItem {
   id: string;
@@ -12,60 +12,46 @@ interface GalleryItem {
   imageUrl: string;
   category: string;
   tags?: string[];
-  aiGenerated?: {
-    description: string;
-    suggestedTags: string[];
-    colorPalette: string[];
-  };
+  aiAnalysis?: ImageAnalysisResult;
 }
 
 interface GalleryGridProps {
   items: GalleryItem[];
   onLoadMore: () => void;
+  loading: boolean;
 }
 
-export const GalleryGrid: React.FC<GalleryGridProps> = ({ items, onLoadMore }) => {
-  const [processedItems, setProcessedItems] = useState<GalleryItem[]>([]);
+export const GalleryGrid: React.FC<GalleryGridProps> = ({ items, onLoadMore, loading }) => {
   const { ref, inView } = useInView({
-    threshold: 0.1,
-    triggerOnce: false
+    threshold: 0,
+    triggerOnce: false,
   });
 
-  // Automatically process new items with AI
-  useEffect(() => {
-    const processNewItems = async () => {
-      const newItems = await Promise.all(
-        items.map(async (item) => {
-          if (!item.aiGenerated) {
-            const aiData = await generateAIDescription(item.imageUrl);
-            return {
-              ...item,
-              aiGenerated: aiData,
-              excerpt: aiData.description, // Auto-generated description
-              tags: aiData.suggestedTags
-            };
-          }
-          return item;
-        })
-      );
-      setProcessedItems(newItems);
-    };
-
-    processNewItems();
-  }, [items]);
-
-  useEffect(() => {
-    if (inView) {
+  React.useEffect(() => {
+    if (inView && !loading) {
       onLoadMore();
     }
-  }, [inView, onLoadMore]);
+  }, [inView, onLoadMore, loading]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 p-6">
-      {processedItems.map((item) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {items.map((item) => (
         <GalleryItem key={item.id} item={item} />
       ))}
-      <div ref={ref} className="h-10 w-full col-span-full" />
+      
+      {/* Loading indicator */}
+      <div ref={ref} className="col-span-full flex justify-center py-8">
+        {loading ? (
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+        ) : (
+          <button
+            onClick={onLoadMore}
+            className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Load More
+          </button>
+        )}
+      </div>
     </div>
   );
 }; 

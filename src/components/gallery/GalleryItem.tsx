@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import { ImageAnalysisResult } from '@/utils/gemini';
 
 interface GalleryItemProps {
   item: {
@@ -9,11 +10,7 @@ interface GalleryItemProps {
     imageUrl: string;
     category: string;
     tags?: string[];
-    aiGenerated?: {
-      description: string;
-      suggestedTags: string[];
-      colorPalette: string[];
-    };
+    aiAnalysis?: ImageAnalysisResult;
   };
 }
 
@@ -32,30 +29,52 @@ export const GalleryItem: React.FC<GalleryItemProps> = ({ item }) => {
       
       <div className="p-4">
         <h3 className="text-lg font-semibold text-gray-800 mb-2">{item.title}</h3>
-        <p className="text-gray-600 text-sm mb-3">{item.excerpt}</p>
+        <p className="text-gray-600 text-sm mb-3">
+          {item.aiAnalysis?.description || item.excerpt}
+        </p>
         
-        {item.aiGenerated && (
-          <div className="space-y-2">
-            <div className="flex flex-wrap gap-1">
-              {item.aiGenerated.colorPalette.map((color, index) => (
-                <div
-                  key={index}
-                  className="w-6 h-6 rounded-full border border-gray-200"
-                  style={{ backgroundColor: color }}
-                  title={`Color ${index + 1}`}
-                />
-              ))}
+        {item.aiAnalysis && (
+          <div className="space-y-3">
+            {/* Color Palette */}
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">Colors</p>
+              <div className="flex flex-wrap gap-1">
+                {item.aiAnalysis.colors.map((color, index) => (
+                  <div
+                    key={index}
+                    className="w-6 h-6 rounded-full border border-gray-200"
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
             </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {item.aiGenerated.suggestedTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
-                >
-                  #{tag}
-                </span>
-              ))}
+
+            {/* Tags */}
+            <div className="space-y-1">
+              <p className="text-xs text-gray-500 font-medium">Tags</p>
+              <div className="flex flex-wrap gap-2">
+                {item.aiAnalysis.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Mood and Composition */}
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Mood</p>
+                <p className="text-gray-700">{item.aiAnalysis.mood}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Composition</p>
+                <p className="text-gray-700">{item.aiAnalysis.composition}</p>
+              </div>
             </div>
           </div>
         )}
