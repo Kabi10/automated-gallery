@@ -5,14 +5,14 @@ import { DbArticle, mapDbArticleToContentItem, ContentItem } from './types';
 
 export async function saveChannel(channel: ChannelConfig) {
   try {
-    await sql`
+    const tagsArray = `{${channel.tags.map(tag => `"${tag}"`).join(',')}}`;
+    
+    await sql.query(`
       INSERT INTO channels (
         username, name, category, language, description, 
         tags, update_frequency, quality
       ) VALUES (
-        ${channel.username}, ${channel.name}, ${channel.category}, 
-        ${channel.language}, ${channel.description}, ${channel.tags}::text[], 
-        ${channel.updateFrequency}, ${channel.quality}
+        $1, $2, $3, $4, $5, $6::text[], $7, $8
       )
       ON CONFLICT (username) 
       DO UPDATE SET
@@ -23,8 +23,17 @@ export async function saveChannel(channel: ChannelConfig) {
         tags = EXCLUDED.tags,
         update_frequency = EXCLUDED.update_frequency,
         quality = EXCLUDED.quality,
-        last_scraped = CURRENT_TIMESTAMP;
-    `;
+        last_scraped = CURRENT_TIMESTAMP
+    `, [
+      channel.username,
+      channel.name,
+      channel.category,
+      channel.language,
+      channel.description,
+      channel.tags,
+      channel.updateFrequency,
+      channel.quality
+    ]);
   } catch (error) {
     console.error(`Error saving channel ${channel.username}:`, error);
     throw error;
@@ -36,21 +45,31 @@ export async function saveArticle(article: Article, channelUsername: string) {
   const excerpt = article.content.slice(0, 150) + '...';
 
   try {
-    await sql`
+    await sql.query(`
       INSERT INTO articles (
         id, title, content, excerpt, category, source, url,
         publish_date, views, language, tags, channel_username
       ) VALUES (
-        ${id}, ${article.title}, ${article.content}, ${excerpt},
-        ${article.category}, ${article.source}, ${article.url},
-        ${article.publishDate.toISOString()}, ${article.views}, ${article.language},
-        ${article.tags}::text[], ${channelUsername}
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::text[], $12
       )
       ON CONFLICT (id) 
       DO UPDATE SET
         views = EXCLUDED.views,
-        updated_at = CURRENT_TIMESTAMP;
-    `;
+        updated_at = CURRENT_TIMESTAMP
+    `, [
+      id,
+      article.title,
+      article.content,
+      excerpt,
+      article.category,
+      article.source,
+      article.url,
+      article.publishDate.toISOString(),
+      article.views,
+      article.language,
+      article.tags,
+      channelUsername
+    ]);
   } catch (error) {
     console.error(`Error saving article ${id}:`, error);
     throw error;
@@ -64,26 +83,21 @@ export async function getLatestArticles(
   language?: string
 ): Promise<ContentItem[]> {
   try {
-    let query = sql`
+    let queryText = `
       SELECT * FROM articles
       WHERE 1=1
-    `;
-
-    if (category) {
-      query = sql`${query} AND category = ${category}`;
-    }
-
-    if (language) {
-      query = sql`${query} AND language = ${language}`;
-    }
-
-    const { rows } = await sql`
-      ${query}
+      ${category ? 'AND category = $3' : ''}
+      ${language ? 'AND language = $4' : ''}
       ORDER BY publish_date DESC
-      LIMIT ${limit}
-      OFFSET ${offset}
+      LIMIT $1::integer
+      OFFSET $2::integer
     `;
 
+    const params = [limit, offset];
+    if (category) params.push(category);
+    if (language) params.push(language);
+
+    const { rows } = await sql.query(queryText, params);
     return (rows as DbArticle[]).map(mapDbArticleToContentItem);
   } catch (error) {
     console.error('Error fetching articles:', error);
@@ -96,12 +110,13 @@ export async function getArticlesByChannel(
   limit: number = 10
 ): Promise<ContentItem[]> {
   try {
-    const { rows } = await sql`
+    const { rows } = await sql.query(`
       SELECT * FROM articles
-      WHERE channel_username = ${channelUsername}
+      WHERE channel_username = $1
       ORDER BY publish_date DESC
-      LIMIT ${limit}
-    `;
+      LIMIT $2
+    `, [channelUsername, limit]);
+    
     return (rows as DbArticle[]).map(mapDbArticleToContentItem);
   } catch (error) {
     console.error(`Error fetching articles for channel ${channelUsername}:`, error);
@@ -111,11 +126,11 @@ export async function getArticlesByChannel(
 
 export async function updateArticleViews(id: string) {
   try {
-    await sql`
+    await sql.query(`
       UPDATE articles
       SET views = views + 1
-      WHERE id = ${id}
-    `;
+      WHERE id = $1
+    `, [id]);
   } catch (error) {
     console.error(`Error updating views for article ${id}:`, error);
     throw error;
