@@ -22,7 +22,7 @@ export interface ImageAnalysisResult {
 export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResult> {
   try {
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-vision' });
     
     // Fetch the image and convert to base64
     const imageResponse = await fetch(imageUrl);
@@ -33,22 +33,48 @@ export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResul
     const imageBlob = await imageResponse.blob();
     const imageBase64 = await blobToBase64(imageBlob);
 
-    const prompt = `Analyze this image and provide:
-    1. A brief description
-    2. Relevant tags
-    3. Dominant colors (in hex format)
-    4. Overall mood
-    5. Main subject
-    6. Composition style
-    Format as JSON with keys: description, tags (array), colors (array), mood, subject, composition`;
+    const prompt = `You are an expert image analyzer. Please analyze this image and provide a detailed analysis in JSON format.
 
-    const result = await model.generateContent([prompt, { inlineData: { data: await imageBase64, mimeType: 'image/jpeg' } }]);
+Instructions:
+1. Provide a concise description of the image (2-3 sentences)
+2. List 5-7 relevant tags that describe the image content
+3. Identify 3-5 dominant colors in hex format (e.g., "#FF0000")
+4. Describe the overall mood or atmosphere
+5. Identify the main subject or focus
+6. Describe the composition style or layout
+
+Return ONLY a JSON object with the following structure:
+{
+  "description": "string",
+  "tags": ["string", "string"],
+  "colors": ["#hex", "#hex"],
+  "mood": "string",
+  "subject": "string",
+  "composition": "string"
+}`;
+
+    const result = await model.generateContent([
+      prompt,
+      { inlineData: { data: await imageBase64, mimeType: 'image/jpeg' } }
+    ]);
+    
     const generatedResponse = await result.response;
     const text = generatedResponse.text();
+    console.log('Raw Gemini Response:', text);
     
     try {
+      // Try to extract JSON from the response if it's wrapped in text
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : text;
+      
       // Parse the JSON response
-      const analysis = JSON.parse(text);
+      const analysis = JSON.parse(jsonStr);
+      
+      // Validate the response structure
+      if (!analysis.description || !analysis.tags || !analysis.colors) {
+        throw new Error('Response missing required fields');
+      }
+      
       return {
         description: analysis.description || 'No description available',
         tags: Array.isArray(analysis.tags) ? analysis.tags : [],
@@ -59,7 +85,8 @@ export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResul
       };
     } catch (parseError) {
       console.error('Failed to parse Gemini response:', text);
-      throw new Error('Invalid response format from Gemini API');
+      console.error('Parse error:', parseError);
+      throw new Error(`Invalid response format from Gemini API: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
     }
   } catch (error) {
     console.error('Error analyzing image:', error);
