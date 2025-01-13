@@ -55,24 +55,32 @@ export default function Home() {
   const [selectedColor, setSelectedColor] = React.useState<string | null>(null);
   const [selectedOrientation, setSelectedOrientation] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
-  const [testResult, setTestResult] = React.useState<ImageAnalysisResult | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-  const [testImage, setTestImage] = React.useState(TEST_IMAGES[0]);
+  const [testResults, setTestResults] = React.useState<Record<string, ImageAnalysisResult | null>>({});
+  const [analyzing, setAnalyzing] = React.useState<Record<string, boolean>>({});
+  const [errors, setErrors] = React.useState<Record<string, string | null>>({});
 
-  // Function to test API with a single image
-  const testAnalyzeImage = async () => {
+  // Function to analyze a single image
+  const analyzeSelectedImage = async (image: typeof TEST_IMAGES[0]) => {
     try {
-      setError(null);
-      setLoading(true);
-      const result = await analyzeImage(testImage.url);
-      setTestResult(result);
-      console.log('Analysis Result:', result);
+      setErrors(prev => ({ ...prev, [image.url]: null }));
+      setAnalyzing(prev => ({ ...prev, [image.url]: true }));
+      
+      const result = await analyzeImage(image.url);
+      setTestResults(prev => ({ ...prev, [image.url]: result }));
+      console.log(`Analysis Result for ${image.name}:`, result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to analyze image';
-      setError(message);
-      console.error('Test Error:', err);
+      setErrors(prev => ({ ...prev, [image.url]: message }));
+      console.error(`Test Error for ${image.name}:`, err);
     } finally {
-      setLoading(false);
+      setAnalyzing(prev => ({ ...prev, [image.url]: false }));
+    }
+  };
+
+  // Function to analyze all images
+  const analyzeAllImages = async () => {
+    for (const image of TEST_IMAGES) {
+      await analyzeSelectedImage(image);
     }
   };
 
@@ -118,63 +126,67 @@ export default function Home() {
             <h1 className="text-3xl font-bold text-gray-900">AI-Powered Gallery</h1>
             <p className="text-gray-600">Test the Gemini API integration below:</p>
             
-            <div className="flex flex-col gap-4">
-              {/* Image Selection */}
-              <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-6">
+              {/* Image Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {TEST_IMAGES.map((img) => (
-                  <button
-                    key={img.url}
-                    onClick={() => setTestImage(img)}
-                    className={`relative h-24 w-32 overflow-hidden rounded-lg border-2 transition-all ${
-                      testImage.url === img.url ? 'border-blue-500 scale-105' : 'border-gray-200 hover:border-blue-300'
-                    }`}
-                  >
-                    <img
-                      src={img.url}
-                      alt={img.name}
-                      className="h-full w-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-end p-2">
-                      <span className="text-xs text-white font-medium">{img.name}</span>
+                  <div key={img.url} className="flex flex-col gap-4">
+                    <div className="relative h-48 overflow-hidden rounded-lg border-2 border-gray-200">
+                      <img
+                        src={img.url}
+                        alt={img.name}
+                        className="h-full w-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-20 flex items-end p-2">
+                        <span className="text-sm text-white font-medium">{img.name}</span>
+                      </div>
                     </div>
-                  </button>
+
+                    <button
+                      onClick={() => analyzeSelectedImage(img)}
+                      disabled={analyzing[img.url]}
+                      className="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 font-medium"
+                    >
+                      {analyzing[img.url] ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Analyzing...
+                        </span>
+                      ) : (
+                        'Analyze Image'
+                      )}
+                    </button>
+
+                    {errors[img.url] && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+                        <h3 className="font-medium text-red-800 mb-2">Error:</h3>
+                        <p className="text-sm text-red-600">{errors[img.url]}</p>
+                      </div>
+                    )}
+
+                    {testResults[img.url] && !errors[img.url] && (
+                      <div className="p-4 bg-white border border-gray-200 rounded-md shadow-sm">
+                        <h3 className="font-medium text-gray-900 mb-2">Analysis Results:</h3>
+                        <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-md">
+                          {JSON.stringify(testResults[img.url], null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
 
-              {/* Test Button */}
+              {/* Analyze All Button */}
               <button
-                onClick={testAnalyzeImage}
-                disabled={loading}
-                className="w-fit px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50 font-medium"
+                onClick={analyzeAllImages}
+                disabled={Object.values(analyzing).some(Boolean)}
+                className="w-fit px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 font-medium"
               >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Analyzing...
-                  </span>
-                ) : (
-                  'Analyze Selected Image'
-                )}
+                {Object.values(analyzing).some(Boolean) ? 'Analyzing...' : 'Analyze All Images'}
               </button>
-              
-              {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-                  <h3 className="font-medium text-red-800 mb-2">Error:</h3>
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              )}
-              
-              {testResult && !error && (
-                <div className="p-4 bg-white border border-gray-200 rounded-md shadow-sm">
-                  <h3 className="font-medium text-gray-900 mb-2">Analysis Results:</h3>
-                  <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-md">
-                    {JSON.stringify(testResult, null, 2)}
-                  </pre>
-                </div>
-              )}
             </div>
           </div>
         </div>
