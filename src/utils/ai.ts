@@ -9,24 +9,28 @@ export interface AIAnalysis {
   };
 }
 
-export async function generateAIDescription(imageUrl: string): Promise<AIAnalysis> {
-  // Temporary mock implementation until we integrate with OpenAI
-  return {
-    description: "A beautiful image with vibrant colors",
-    suggestedTags: ["landscape", "nature", "colorful"],
-    colorPalette: ["#4A90E2", "#50E3C2", "#F5A623"],
-    metadata: {
-      dimensions: "1920x1080",
-      aspectRatio: 1.778,
-      brightness: 0.7
-    }
-  };
-}
-
+// Common colors for filtering
 export const commonColors = [
-  "#4A90E2", // Blue
-  "#50E3C2", // Turquoise
-  "#F5A623", // Orange
-  "#D0021B", // Red
-  "#7ED321", // Green
-]; 
+  '#FF0000', // Red
+  '#00FF00', // Green
+  '#0000FF', // Blue
+  '#FFFF00', // Yellow
+  '#FF00FF', // Magenta
+  '#00FFFF', // Cyan
+  '#FFA500', // Orange
+  '#800080', // Purple
+  '#008000', // Dark Green
+  '#000000', // Black
+  '#FFFFFF', // White
+  '#808080', // Gray
+];
+
+// Mock function for AI image analysis
+export const generateAIDescription = async (imageUrl: string) => {
+  // TODO: Implement actual AI analysis
+  return {
+    description: "A beautiful image showcasing nature's wonders.",
+    suggestedTags: ['nature', 'landscape', 'scenic'],
+    colorPalette: commonColors.slice(0, 3),
+  };
+}; 
