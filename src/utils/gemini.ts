@@ -53,13 +53,22 @@ Return ONLY a JSON object with the following structure:
   "composition": "string"
 }`;
 
-    const result = await model.generateContent([
-      prompt,
-      { inlineData: { data: await imageBase64, mimeType: 'image/jpeg' } }
-    ]);
+    // Create parts array for the model
+    const parts = [
+      { text: prompt },
+      {
+        inlineData: {
+          mimeType: 'image/jpeg',
+          data: imageBase64
+        }
+      }
+    ];
+
+    // Generate content with parts array
+    const result = await model.generateContent(parts);
+    await result.response;
     
-    const generatedResponse = await result.response;
-    const text = generatedResponse.text();
+    const text = result.response.text();
     console.log('Raw Gemini Response:', text);
     
     try {
