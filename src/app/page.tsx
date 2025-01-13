@@ -37,16 +37,16 @@ const mockGalleryItems: GalleryItem[] = [
 
 const TEST_IMAGES = [
   {
-    url: 'https://picsum.photos/800/600?random=1',
-    name: 'Random Image 1'
+    url: 'https://picsum.photos/seed/pinecones/800/600',
+    name: 'Pine Cones'
   },
   {
-    url: 'https://picsum.photos/800/600?random=2',
-    name: 'Random Image 2'
+    url: 'https://picsum.photos/seed/tower/800/600',
+    name: 'Misty Tower'
   },
   {
-    url: 'https://picsum.photos/800/600?random=3',
-    name: 'Random Image 3'
+    url: 'https://picsum.photos/seed/coast/800/600',
+    name: 'Coastal Cliffs'
   }
 ];
 
