@@ -22,7 +22,7 @@ export interface ImageAnalysisResult {
 export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResult> {
   try {
     const genAI = getGeminiClient();
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro-vision' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
     
     // Fetch the image and convert to base64
     const imageResponse = await fetch(imageUrl);
