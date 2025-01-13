@@ -35,6 +35,21 @@ const mockGalleryItems: GalleryItem[] = [
   },
 ];
 
+const TEST_IMAGES = [
+  {
+    url: 'https://picsum.photos/800/600?random=1',
+    name: 'Random Image 1'
+  },
+  {
+    url: 'https://picsum.photos/800/600?random=2',
+    name: 'Random Image 2'
+  },
+  {
+    url: 'https://picsum.photos/800/600?random=3',
+    name: 'Random Image 3'
+  }
+];
+
 export default function Home() {
   const [items, setItems] = React.useState<GalleryItem[]>(mockGalleryItems);
   const [selectedColor, setSelectedColor] = React.useState<string | null>(null);
@@ -42,13 +57,14 @@ export default function Home() {
   const [loading, setLoading] = React.useState(false);
   const [testResult, setTestResult] = React.useState<ImageAnalysisResult | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [testImage, setTestImage] = React.useState(TEST_IMAGES[0]);
 
   // Function to test API with a single image
   const testAnalyzeImage = async () => {
     try {
       setError(null);
       setLoading(true);
-      const result = await analyzeImage('https://picsum.photos/800/600?random=1');
+      const result = await analyzeImage(testImage.url);
       setTestResult(result);
       console.log('Analysis Result:', result);
     } catch (err) {
@@ -103,6 +119,29 @@ export default function Home() {
             <p className="text-gray-600">Test the Gemini API integration below:</p>
             
             <div className="flex flex-col gap-4">
+              {/* Image Selection */}
+              <div className="flex flex-wrap gap-4">
+                {TEST_IMAGES.map((img) => (
+                  <button
+                    key={img.url}
+                    onClick={() => setTestImage(img)}
+                    className={`relative h-24 w-32 overflow-hidden rounded-lg border-2 transition-all ${
+                      testImage.url === img.url ? 'border-blue-500 scale-105' : 'border-gray-200 hover:border-blue-300'
+                    }`}
+                  >
+                    <img
+                      src={img.url}
+                      alt={img.name}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-20 flex items-end p-2">
+                      <span className="text-xs text-white font-medium">{img.name}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Test Button */}
               <button
                 onClick={testAnalyzeImage}
                 disabled={loading}
@@ -117,7 +156,7 @@ export default function Home() {
                     Analyzing...
                   </span>
                 ) : (
-                  'Test Gemini API'
+                  'Analyze Selected Image'
                 )}
               </button>
               
