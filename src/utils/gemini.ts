@@ -1,7 +1,14 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Initialize the Gemini API client
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+const getGeminiClient = () => {
+  // Use NEXT_PUBLIC prefix for client-side access
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error('Gemini API key not configured. Please set NEXT_PUBLIC_GOOGLE_GEMINI_API_KEY in your environment variables.');
+  }
+  return new GoogleGenerativeAI(apiKey);
+};
 
 export interface ImageAnalysisResult {
   description: string;
@@ -14,17 +21,22 @@ export interface ImageAnalysisResult {
 
 export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResult> {
   try {
+    const genAI = getGeminiClient();
     const model = genAI.getGenerativeModel({ model: 'gemini-pro-vision' });
     
     // Fetch the image and convert to base64
     const imageResponse = await fetch(imageUrl);
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+    }
+    
     const imageBlob = await imageResponse.blob();
     const imageBase64 = await blobToBase64(imageBlob);
 
     const prompt = `Analyze this image and provide:
     1. A brief description
     2. Relevant tags
-    3. Dominant colors
+    3. Dominant colors (in hex format)
     4. Overall mood
     5. Main subject
     6. Composition style
@@ -34,20 +46,24 @@ export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResul
     const generatedResponse = await result.response;
     const text = generatedResponse.text();
     
-    // Parse the JSON response
-    const analysis = JSON.parse(text);
-    
-    return {
-      description: analysis.description || '',
-      tags: analysis.tags || [],
-      colors: analysis.colors || [],
-      mood: analysis.mood || '',
-      subject: analysis.subject || '',
-      composition: analysis.composition || '',
-    };
+    try {
+      // Parse the JSON response
+      const analysis = JSON.parse(text);
+      return {
+        description: analysis.description || 'No description available',
+        tags: Array.isArray(analysis.tags) ? analysis.tags : [],
+        colors: Array.isArray(analysis.colors) ? analysis.colors : [],
+        mood: analysis.mood || 'Unknown mood',
+        subject: analysis.subject || 'Unknown subject',
+        composition: analysis.composition || 'Unknown composition',
+      };
+    } catch (parseError) {
+      console.error('Failed to parse Gemini response:', text);
+      throw new Error('Invalid response format from Gemini API');
+    }
   } catch (error) {
     console.error('Error analyzing image:', error);
-    throw new Error('Failed to analyze image');
+    throw error instanceof Error ? error : new Error('Failed to analyze image');
   }
 }
 
@@ -59,7 +75,7 @@ function blobToBase64(blob: Blob): Promise<string> {
       if (typeof reader.result === 'string') {
         resolve(reader.result.split(',')[1]);
       } else {
-        reject(new Error('Failed to convert blob to base64'));
+        reject(new Error('Failed to convert image to base64'));
       }
     };
     reader.onerror = reject;
