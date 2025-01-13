@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { GalleryFilters } from '@/components/gallery/GalleryFilters';
-import { GalleryGrid } from '@/components/gallery/GalleryGrid';
+import { ArticleGrid } from '@/components/blog/ArticleGrid';
 import { TelegramScraper } from '@/utils/telegram/telegramScraper';
 import { getLatestArticles, saveArticle, saveChannel } from '@/lib/db';
 import { getActiveChannels } from '@/utils/telegram/channelConfig';
@@ -126,7 +126,7 @@ export default function Home() {
           </div>
         )}
 
-        <GalleryGrid
+        <ArticleGrid
           items={filteredItems}
           onLoadMore={loadContent}
           loading={loading}

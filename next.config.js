@@ -3,11 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ['t.me'],
-  },
-  experimental: {
-    serverActions: true,
-  },
-}
+    domains: ['t.me']
+  }
+};
 
-module.exports = nextConfig 
+module.exports = nextConfig; 
