@@ -1,180 +1,120 @@
-import axios from 'axios';
-import { Article, TelegramPost, ScrapingResult } from './types';
-import { getActiveChannels, ChannelConfig } from './channelConfig';
+import { TelegramPost, Article, ChannelInfo, ScrapingResult } from './types';
 import { logger } from '../logger';
+import axios from 'axios';
 
 export class TelegramScraper {
-  private readonly BASE_URL = 'https://t.me/s/';
-
-  async getChannelPosts(username: string, limit: number): Promise<TelegramPost[]> {
-    try {
-      const url = `${this.BASE_URL}${username.replace('@', '')}`;
-      logger.info(`🌐 Trying URL: ${url}`);
-
-      const response = await axios.get(url);
-      logger.info(`📊 Response Status: ${response.status}`);
-
-      if (response.status === 200) {
-        const html = response.data as string;
-        const posts: TelegramPost[] = [];
-
-        // Extract posts using regex
-        const postMatches = html.match(/<div class="tgme_widget_message_text js-message_text"[^>]*>(.*?)<\/div>/gs);
-        const dateMatches = html.match(/<time datetime="([^"]+)"/g);
-        const viewMatches = html.match(/<span class="tgme_widget_message_views">([^<]+)<\/span>/g);
-
-        if (postMatches && postMatches.length > 0) {
-          logger.info(`📝 Found ${postMatches.length} posts`);
-
-          postMatches.slice(0, limit).forEach((match, index) => {
-            const text = this.cleanText(match);
-            const date = dateMatches?.[index]
-              ? dateMatches[index].match(/"([^"]+)"/)?.[1] || new Date().toISOString()
-              : new Date().toISOString();
-
-            const viewsText = viewMatches?.[index]
-              ? viewMatches[index].match(/>([^<]+)</)?.[1] || '0'
-              : '0';
-            const views = parseInt(viewsText.replace('K', '000')) || 0;
-
-            posts.push({
-              id: index + 1,
-              text,
-              date,
-              views
-            });
-          });
-        }
-
-        return posts;
-      }
-
-      return [];
-    } catch (error) {
-      if (error instanceof Error) {
-        logger.error(`Error fetching posts: ${error.message}`);
-      }
-      return [];
-    }
+  private getChannelInfo(username: string): ChannelInfo {
+    return {
+      username,
+      name: username, // Default to username
+      category: 'tech', // Default category
+      language: 'en' // Default language
+    };
   }
 
-  private cleanText(html: string): string {
-    return html
-      .replace(/<div class="tgme_widget_message_text js-message_text"[^>]*>/, '')
-      .replace(/<\/div>/, '')
-      .replace(/<br\/?>/g, '\n')
-      .replace(/<[^>]+>/g, '')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#039;/g, "'")
-      .replace(/&#036;/g, '$')
-      .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+  private processPostsIntoArticles(posts: TelegramPost[], channelUsername: string, category: string, language: string): Article[] {
+    return posts.map(post => ({
+      id: `${channelUsername}_${post.id}`,
+      title: post.text.split('\n')[0].slice(0, 100),
+      content: post.text,
+      excerpt: post.text.slice(0, 200),
+      category,
+      source: `https://t.me/${channelUsername}`,
+      url: `https://t.me/${channelUsername}/${post.id}`,
+      publishDate: new Date(post.date),
+      views: post.views,
+      language,
+      tags: this.extractTags(post.text),
+      channelUsername,
+      images: post.images
+    }));
   }
 
   private extractTags(text: string): string[] {
+    const tags: string[] = [];
     // Extract hashtags
-    const hashTags = (text.match(/#\w+/g) || []).map(tag => tag.slice(1));
-    
+    const hashtagRegex = /#[\w-]+/g;
+    const hashtags = text.match(hashtagRegex);
+    if (hashtags) {
+      tags.push(...hashtags.map(tag => tag.slice(1)));
+    }
     // Extract key terms (words longer than 4 chars)
-    const words = text.split(/\s+/)
-      .filter(word => word.length > 4)
-      .filter(word => !hashTags.includes(word))
-      .slice(0, 5);  // Limit to 5 key terms
-
-    return [...new Set([...hashTags, ...words])];
+    const words = text.split(/\s+/);
+    const keyTerms = words.filter(word => word.length > 4 && !word.startsWith('#'));
+    tags.push(...keyTerms.slice(0, 5));
+    return [...new Set(tags)]; // Remove duplicates
   }
 
-  async scrapeChannel(channel: ChannelConfig): Promise<ScrapingResult> {
+  public async scrapeChannel(username: string, limit: number = 10): Promise<ScrapingResult> {
     try {
-      logger.info(`📺 Processing channel: @${channel.username}`);
-      logger.info(`📋 Category: ${channel.category}`);
-      logger.info(`🌐 Language: ${channel.language}`);
-
-      const posts = await this.getChannelPosts(channel.username, channel.postsPerScrape);
+      logger.info(`Fetching posts from @${username}...`);
+      const url = `https://t.me/s/${username}`;
+      const response = await axios.get(url);
       
-      if (!posts || posts.length === 0) {
+      if (response.status !== 200) {
         return {
-          channel,
-          posts: 0,
+          channel: this.getChannelInfo(username),
+          posts: [],
           articles: [],
-          error: 'No posts found'
+          error: `Failed to fetch posts: ${response.status}`
         };
       }
 
-      const articles = posts.map(post => ({
-        title: post.text.slice(0, 50) + '...',
-        content: post.text,
-        category: channel.category,
-        source: `telegram:@${channel.username}`,
-        url: `https://t.me/${channel.username}/${post.id}`,
-        publishDate: new Date(post.date),
-        tags: [...channel.tags, ...this.extractTags(post.text)],
-        views: post.views,
-        language: channel.language
-      }));
+      const html = response.data;
+      const posts: TelegramPost[] = [];
+      const postRegex = /<div class="tgme_widget_message_wrap[^>]*>.*?<div class="tgme_widget_message_text[^>]*>(.*?)<\/div>.*?<time datetime="([^"]+)"[^>]*>.*?<span class="tgme_widget_message_views">([^<]+)<\/span>/gs;
+      
+      let match;
+      let index = 0;
+      while ((match = postRegex.exec(html)) !== null && index < limit) {
+        const [_, text, date, views] = match;
+        posts.push({
+          id: (index + 1).toString(),
+          text: text.replace(/<[^>]*>/g, '').trim(),
+          date: date,
+          views: parseInt(views.replace(/[^0-9]/g, '')) || 0,
+          images: [] // TODO: Extract image URLs
+        });
+        index++;
+      }
 
+      const channel = this.getChannelInfo(username);
+      const articles = this.processPostsIntoArticles(posts, username, channel.category, channel.language);
+      
       return {
         channel,
-        posts: posts.length,
+        posts,
         articles,
-        lastPostDate: new Date(posts[0].date)
+        lastPostDate: posts.length > 0 ? new Date(posts[0].date) : undefined
       };
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error scraping channel @${channel.username}: ${errorMessage}`);
+      logger.error(`Error scraping channel @${username}: ${error}`);
       return {
-        channel,
-        posts: 0,
+        channel: this.getChannelInfo(username),
+        posts: [],
         articles: [],
-        error: errorMessage
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
 
-  async scrapeAllChannels(): Promise<ScrapingResult[]> {
-    const channels = getActiveChannels();
-    const results: ScrapingResult[] = [];
-
-    for (const channel of channels) {
-      const result = await this.scrapeChannel(channel);
-      results.push(result);
-      
-      // Add a small delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    this.logScrapingSummary(results);
-    return results;
-  }
-
-  private logScrapingSummary(results: ScrapingResult[]) {
-    const totalPosts = results.reduce((sum, r) => sum + r.posts, 0);
-    const totalArticles = results.reduce((sum, r) => sum + r.articles.length, 0);
-
-    logger.info('\n📊 Scraping Summary:');
-    logger.info(`Total Posts: ${totalPosts}`);
-    logger.info(`Total Articles: ${totalArticles}\n`);
-
-    logger.info('📈 Channel Stats:\n');
-    results.forEach(result => {
-      logger.info(`@${result.channel.username}:`);
-      logger.info(`- Posts: ${result.posts}`);
-      logger.info(`- Articles: ${result.articles.length}`);
-      if (result.lastPostDate) {
-        logger.info(`- Latest: ${result.lastPostDate.toISOString().split('T')[0]}`);
-      }
-      if (result.articles.length > 0) {
-        logger.info(`- Preview: ${result.articles[0].content.slice(0, 100)}...`);
-      }
-      if (result.error) {
-        logger.info(`- Error: ${result.error}`);
-      }
-      logger.info('');
-    });
+  public async getChannelPosts(
+    username: string, 
+    limit: number = 10, 
+    category: string = 'tech', 
+    language: string = 'en'
+  ): Promise<ScrapingResult> {
+    const result = await this.scrapeChannel(username, limit);
+    // Override the channel info with provided category and language
+    result.channel.category = category;
+    result.channel.language = language;
+    // Update articles with the new category and language
+    result.articles = result.articles.map(article => ({
+      ...article,
+      category,
+      language
+    }));
+    return result;
   }
 } 

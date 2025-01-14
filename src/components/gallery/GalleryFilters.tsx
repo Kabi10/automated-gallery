@@ -1,22 +1,24 @@
 import React from 'react';
 
 interface GalleryFiltersProps {
-  onCategorySelect: (category: string | null) => void;
-  onLanguageSelect: (language: string | null) => void;
-  selectedCategory: string | null;
-  selectedLanguage: string | null;
+  onCategorySelect: (category: string) => void;
+  onLanguageSelect: (language: string) => void;
+  selectedCategory: string;
+  selectedLanguage: string;
 }
 
 const CATEGORIES = [
-  { id: 'tech', name: 'Technology' },
-  { id: 'startup', name: 'Startups' },
-  { id: 'ai', name: 'AI/ML' },
-  { id: 'product', name: 'Products' }
+  { id: 'all', label: 'All' },
+  { id: 'tech', label: 'Technology' },
+  { id: 'startup', label: 'Startups' },
+  { id: 'ai', label: 'AI' },
+  { id: 'crypto', label: 'Crypto' }
 ];
 
 const LANGUAGES = [
-  { id: 'en', name: 'English' },
-  { id: 'ru', name: 'Russian' }
+  { id: 'all', label: 'All' },
+  { id: 'en', label: 'English' },
+  { id: 'ru', label: 'Russian' }
 ];
 
 export function GalleryFilters({
@@ -30,27 +32,17 @@ export function GalleryFilters({
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-3">Categories</h3>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => onCategorySelect(null)}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              selectedCategory === null
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          {CATEGORIES.map((category) => (
+          {CATEGORIES.map(category => (
             <button
               key={category.id}
               onClick={() => onCategorySelect(category.id)}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                selectedCategory === category.id
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors
+                ${selectedCategory === category.id
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
-              {category.name}
+              {category.label}
             </button>
           ))}
         </div>
@@ -59,27 +51,17 @@ export function GalleryFilters({
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-3">Languages</h3>
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => onLanguageSelect(null)}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
-              selectedLanguage === null
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          {LANGUAGES.map((language) => (
+          {LANGUAGES.map(language => (
             <button
               key={language.id}
               onClick={() => onLanguageSelect(language.id)}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                selectedLanguage === language.id
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors
+                ${selectedLanguage === language.id
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
-              {language.name}
+              {language.label}
             </button>
           ))}
         </div>

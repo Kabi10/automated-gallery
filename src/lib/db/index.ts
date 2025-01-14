@@ -1,5 +1,5 @@
 import { sql } from '@vercel/postgres';
-import { Article } from '@/utils/telegram/types';
+import { Article } from '@/services/scraper/telegram/types';
 import { ChannelConfig } from '@/utils/telegram/channelConfig';
 import { DbArticle, mapDbArticleToContentItem, ContentItem } from './types';
 

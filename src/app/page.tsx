@@ -1,137 +1,95 @@
 'use client';
 
-import React from 'react';
-import { GalleryFilters } from '@/components/gallery/GalleryFilters';
-import { ArticleGrid } from '@/components/blog/ArticleGrid';
+import React, { useEffect, useState } from 'react';
 import { TelegramScraper } from '@/utils/telegram/telegramScraper';
-import { getLatestArticles, saveArticle, saveChannel } from '@/lib/db';
-import { getActiveChannels } from '@/utils/telegram/channelConfig';
-import { ContentItem } from '@/lib/db/types';
+import { Article } from '@/services/scraper/telegram/types';
+import { saveArticle } from '@/lib/db';
+import { GalleryFilters } from '@/components/gallery/GalleryFilters';
+import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 
-// Initialize scraper
-const scraper = new TelegramScraper();
-const ITEMS_PER_PAGE = 12;
+const CHANNELS = [
+  { username: 'durov', name: 'Pavel Durov', category: 'tech', language: 'en' },
+  { username: 'telegram', name: 'Telegram News', category: 'tech', language: 'en' },
+  { username: 'startupoftheday', name: 'Startup of the Day', category: 'startup', language: 'ru' }
+];
 
 export default function Home() {
-  const [items, setItems] = React.useState<ContentItem[]>([]);
-  const [selectedCategory, setSelectedCategory] = React.useState<string | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const [page, setPage] = React.useState(0);
+  const [articles, setArticles] = useState<Article[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load initial content
-  React.useEffect(() => {
-    loadContent();
-  }, [selectedCategory, selectedLanguage]);
+  useEffect(() => {
+    fetchContent();
+  }, []);
 
-  // Function to load content
-  const loadContent = async () => {
-    setLoading(true);
+  async function fetchContent() {
+    setIsLoading(true);
     try {
-      // First, try to load from database
-      const dbArticles = await getLatestArticles(
-        ITEMS_PER_PAGE,
-        page * ITEMS_PER_PAGE,
-        selectedCategory || undefined,
-        selectedLanguage || undefined
-      );
-
-      if (dbArticles.length > 0) {
-        setItems(prevItems => [...prevItems, ...dbArticles]);
-        setPage(prev => prev + 1);
-      } else if (page === 0) {
-        // If no articles in DB and it's the first page, scrape new content
-        await scrapeAndSaveContent();
+      const scraper = new TelegramScraper();
+      const allArticles: Article[] = [];
+      
+      for (const channel of CHANNELS) {
+        const result = await scraper.getChannelPosts(
+          channel.username,
+          10,
+          channel.category,
+          channel.language
+        );
+        if (result.articles.length > 0) {
+          allArticles.push(...result.articles);
+          // Save articles to database
+          await Promise.all(
+            result.articles.map((article: Article) => saveArticle(article, channel.username))
+          );
+        }
       }
 
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load content');
-      console.error('Error loading content:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Function to scrape and save content
-  const scrapeAndSaveContent = async () => {
-    try {
-      // Save channel configurations
-      const channels = getActiveChannels();
-      await Promise.all(channels.map(channel => saveChannel(channel)));
-
-      // Scrape and save articles
-      const results = await scraper.scrapeAllChannels();
-      await Promise.all(
-        results.flatMap(result =>
-          result.articles.map(article =>
-            saveArticle(article, result.channel.username)
-          )
-        )
-      );
-
-      // Load the saved articles
-      const dbArticles = await getLatestArticles(
-        ITEMS_PER_PAGE,
-        0,
-        selectedCategory || undefined,
-        selectedLanguage || undefined
-      );
-      
-      setItems(dbArticles);
-      setPage(1);
+      setArticles(allArticles);
     } catch (error) {
-      console.error('Error scraping content:', error);
-      throw error;
+      console.error('Error fetching content:', error);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }
 
-  // Filter items based on selected category and language
-  const filteredItems = items.filter(item => {
-    if (selectedCategory && item.category !== selectedCategory) {
-      return false;
-    }
-    if (selectedLanguage && item.language !== selectedLanguage) {
-      return false;
-    }
-    return true;
+  const filteredArticles = articles.filter(article => {
+    const categoryMatch = selectedCategory === 'all' || article.category === selectedCategory;
+    const languageMatch = selectedLanguage === 'all' || article.language === selectedLanguage;
+    return categoryMatch && languageMatch;
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-white shadow-sm mb-6">
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4">
-            <h1 className="text-3xl font-bold text-gray-900">Tech Pulse</h1>
-            <p className="text-gray-600">Latest updates from the tech world</p>
-          </div>
+    <main className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Tech Pulse Aggregator
+          </h1>
+          <p className="text-lg text-gray-600">
+            Stay updated with the latest in tech, startups, and innovation
+          </p>
         </div>
-      </div>
 
-      {/* Content Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <GalleryFilters
           onCategorySelect={setSelectedCategory}
           onLanguageSelect={setSelectedLanguage}
           selectedCategory={selectedCategory}
           selectedLanguage={selectedLanguage}
         />
-        
-        {error && (
-          <div className="p-4 mb-6 bg-red-50 border border-red-200 rounded-md">
-            <h3 className="font-medium text-red-800 mb-2">Error:</h3>
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
 
-        <ArticleGrid
-          items={filteredItems}
-          onLoadMore={loadContent}
-          loading={loading}
-        />
-      </main>
-    </div>
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <p className="mt-2 text-gray-600">Loading content...</p>
+          </div>
+        ) : (
+          <GalleryGrid
+            items={filteredArticles}
+            onItemClick={(article: Article) => window.open(article.url, '_blank')}
+          />
+        )}
+      </div>
+    </main>
   );
 } 

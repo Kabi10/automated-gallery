@@ -1,53 +1,45 @@
-import { TelegramScraper } from '../utils/telegram/telegramScraper';
+import { TelegramScraper } from '@/utils/telegram/telegramScraper';
+import { ScrapingResult } from '@/services/scraper/telegram/types';
 
-async function testChannel(channelName: string) {
-  const scraper = new TelegramScraper();
-  
+async function testChannel(channelName: string): Promise<boolean> {
   try {
-    console.log(`\n🔍 Testing @${channelName}...`);
-    const posts = await scraper.getChannelPosts(channelName, 3);
-    
-    if (posts.length > 0) {
-      console.log(`✅ Channel is public and active! Found ${posts.length} posts`);
+    const scraper = new TelegramScraper();
+    const result: ScrapingResult = await scraper.getChannelPosts(channelName, 3);
+
+    if (result.posts.length > 0) {
+      console.log(`✅ Channel is public and active! Found ${result.posts.length} posts`);
       console.log('📝 Latest post preview:');
-      console.log(`Date: ${posts[0].date.toLocaleDateString()}`);
-      console.log(`Views: ${posts[0].views}`);
-      console.log(`Text: ${posts[0].text.substring(0, 100).replace(/\n/g, ' ')}...`);
+      console.log(`Date: ${new Date(result.posts[0].date).toLocaleDateString()}`);
+      console.log(`Views: ${result.posts[0].views}`);
+      console.log(`Content: ${result.posts[0].text.substring(0, 100)}...`);
       return true;
     } else {
-      console.log('❌ Channel is not accessible');
+      console.log(`❌ Channel @${channelName} is not accessible or has no posts`);
       return false;
     }
   } catch (error) {
-    console.error('❌ Error testing channel:', error);
+    console.error(`Error testing channel @${channelName}:`, error);
     return false;
   }
 }
 
 async function findPublicChannels() {
-  console.log('🚀 Searching for public Telegram channels...\n');
-  
   const channels = [
-    // Tech & News
-    'durov',           // Pavel Durov's channel
-    'telegram',        // Official Telegram News
-    'technologyreview', // MIT Technology Review
-    'theverge',        // The Verge
-    
-    // Startup & Business
-    'startupstash',    // Startup resources
-    'startupoftheday', // Daily startup features
-    'foundersclub',    // Founders discussions
-    'startupfunding',  // Funding news
-    'startupweekend',  // Startup Weekend events
-    'startupschool',   // Y Combinator's Startup School
-    
-    // AI & Tech
-    'openai',          // OpenAI updates
-    'huggingface',     // Hugging Face AI
-    'aitrending',      // AI News & Updates
-    'machinelearning', // ML News
-    'artificialintelligence' // AI discussions
+    'startupfeed',
+    'businessinsider',
+    'techinasia',
+    'startupdigest',
+    'venturebeat',
+    'producthunt',
+    'techcrunch',
+    'startupstories',
+    'ycombinator',
+    'saastr',
+    'startupgrind',
+    'failory',
+    'startupL',
+    'IndianStartups',
+    'startupjobs'
   ];
 
   const results = {
@@ -56,7 +48,9 @@ async function findPublicChannels() {
   };
 
   for (const channel of channels) {
+    console.log(`\nTesting @${channel}...`);
     const isWorking = await testChannel(channel);
+    
     if (isWorking) {
       results.working.push(channel);
     } else {
@@ -65,12 +59,8 @@ async function findPublicChannels() {
   }
 
   console.log('\n📊 Results Summary:');
-  console.log('✅ Working channels:');
-  results.working.forEach(channel => console.log(`- @${channel}`));
-  
-  console.log('\n❌ Not accessible:');
-  results.failed.forEach(channel => console.log(`- @${channel}`));
+  console.log('✅ Working channels:', results.working.join(', '));
+  console.log('❌ Not accessible:', results.failed.join(', '));
 }
 
-// Run the channel finder
-findPublicChannels(); 
+findPublicChannels().catch(console.error); 

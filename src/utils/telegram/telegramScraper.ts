@@ -1,12 +1,11 @@
 import axios from 'axios';
-import { Article, TelegramPost, ScrapingResult } from './types';
-import { getActiveChannels, ChannelConfig } from './channelConfig';
+import { TelegramPost, Article, ScrapingResult } from './types';
 import { logger } from '../logger';
 
 export class TelegramScraper {
   private readonly BASE_URL = 'https://t.me/s/';
 
-  async getChannelPosts(username: string, limit: number): Promise<TelegramPost[]> {
+  async getChannelPosts(username: string, limit: number = 10, category: string = 'tech', language: string = 'en'): Promise<ScrapingResult> {
     try {
       const url = `${this.BASE_URL}${username.replace('@', '')}`;
       logger.info(`🌐 Trying URL: ${url}`);
@@ -29,8 +28,8 @@ export class TelegramScraper {
           postMatches.slice(0, limit).forEach((match, index) => {
             const text = this.cleanText(match);
             const date = dateMatches?.[index]
-              ? dateMatches[index].match(/"([^"]+)"/)?.[1] || new Date().toISOString()
-              : new Date().toISOString();
+              ? new Date(dateMatches[index].match(/"([^"]+)"/)?.[1] || new Date().toISOString())
+              : new Date();
 
             const viewsText = viewMatches?.[index]
               ? viewMatches[index].match(/>([^<]+)</)?.[1] || '0'
@@ -38,7 +37,7 @@ export class TelegramScraper {
             const views = parseInt(viewsText.replace('K', '000')) || 0;
 
             posts.push({
-              id: index + 1,
+              id: `${username}_${index + 1}`,
               text,
               date,
               views
@@ -46,15 +45,44 @@ export class TelegramScraper {
           });
         }
 
-        return posts;
+        const articles = this.processPostsIntoArticles(posts, username, category, language);
+
+        return {
+          posts,
+          articles,
+          channelInfo: {
+            username,
+            name: username,
+            category,
+            language
+          }
+        };
       }
 
-      return [];
+      return {
+        posts: [],
+        articles: [],
+        channelInfo: {
+          username,
+          name: username,
+          category,
+          language
+        }
+      };
     } catch (error) {
       if (error instanceof Error) {
         logger.error(`Error fetching posts: ${error.message}`);
       }
-      return [];
+      return {
+        posts: [],
+        articles: [],
+        channelInfo: {
+          username,
+          name: username,
+          category,
+          language
+        }
+      };
     }
   }
 
@@ -88,93 +116,27 @@ export class TelegramScraper {
     return [...new Set([...hashTags, ...words])];
   }
 
-  async scrapeChannel(channel: ChannelConfig): Promise<ScrapingResult> {
-    try {
-      logger.info(`📺 Processing channel: @${channel.username}`);
-      logger.info(`📋 Category: ${channel.category}`);
-      logger.info(`🌐 Language: ${channel.language}`);
+  private processPostsIntoArticles(posts: TelegramPost[], channelUsername: string, category: string, language: string): Article[] {
+    return posts.map(post => {
+      const title = post.text.split('\n')[0].slice(0, 100);
+      const content = post.text;
+      const excerpt = content.slice(0, 200) + (content.length > 200 ? '...' : '');
 
-      const posts = await this.getChannelPosts(channel.username, channel.postsPerScrape);
-      
-      if (!posts || posts.length === 0) {
-        return {
-          channel,
-          posts: 0,
-          articles: [],
-          error: 'No posts found'
-        };
-      }
-
-      const articles = posts.map(post => ({
-        title: post.text.slice(0, 50) + '...',
-        content: post.text,
-        category: channel.category,
-        source: `telegram:@${channel.username}`,
-        url: `https://t.me/${channel.username}/${post.id}`,
-        publishDate: new Date(post.date),
-        tags: [...channel.tags, ...this.extractTags(post.text)],
+      return {
+        id: `${channelUsername}_${post.id}`,
+        title,
+        content,
+        excerpt,
+        category,
+        source: `telegram:@${channelUsername}`,
+        url: `https://t.me/${channelUsername}/${post.id}`,
+        publishDate: post.date,
         views: post.views,
-        language: channel.language
-      }));
-
-      return {
-        channel,
-        posts: posts.length,
-        articles,
-        lastPostDate: new Date(posts[0].date)
+        language,
+        tags: this.extractTags(post.text),
+        channelUsername,
+        images: []
       };
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      logger.error(`Error scraping channel @${channel.username}: ${errorMessage}`);
-      return {
-        channel,
-        posts: 0,
-        articles: [],
-        error: errorMessage
-      };
-    }
-  }
-
-  async scrapeAllChannels(): Promise<ScrapingResult[]> {
-    const channels = getActiveChannels();
-    const results: ScrapingResult[] = [];
-
-    for (const channel of channels) {
-      const result = await this.scrapeChannel(channel);
-      results.push(result);
-      
-      // Add a small delay between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-
-    this.logScrapingSummary(results);
-    return results;
-  }
-
-  private logScrapingSummary(results: ScrapingResult[]) {
-    const totalPosts = results.reduce((sum, r) => sum + r.posts, 0);
-    const totalArticles = results.reduce((sum, r) => sum + r.articles.length, 0);
-
-    logger.info('\n📊 Scraping Summary:');
-    logger.info(`Total Posts: ${totalPosts}`);
-    logger.info(`Total Articles: ${totalArticles}\n`);
-
-    logger.info('📈 Channel Stats:\n');
-    results.forEach(result => {
-      logger.info(`@${result.channel.username}:`);
-      logger.info(`- Posts: ${result.posts}`);
-      logger.info(`- Articles: ${result.articles.length}`);
-      if (result.lastPostDate) {
-        logger.info(`- Latest: ${result.lastPostDate.toISOString().split('T')[0]}`);
-      }
-      if (result.articles.length > 0) {
-        logger.info(`- Preview: ${result.articles[0].content.slice(0, 100)}...`);
-      }
-      if (result.error) {
-        logger.info(`- Error: ${result.error}`);
-      }
-      logger.info('');
     });
   }
 } 

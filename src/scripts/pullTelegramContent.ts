@@ -1,32 +1,34 @@
-import { TelegramScraper } from '../utils/telegram/telegramScraper';
-import { ProcessedArticle } from '../utils/telegram/types';
+import { TelegramScraper } from '@/utils/telegram/telegramScraper';
+import { Article } from '@/services/scraper/telegram/types';
+import { saveArticle } from '@/lib/db';
 
-async function saveArticle(article: ProcessedArticle) {
-  // Implement your storage logic here
-  console.log('Saving article:', article.title);
-}
-
-async function pullAndProcessContent() {
+async function pullContent() {
   const scraper = new TelegramScraper();
-
+  
   try {
-    // Get posts from Unicorns channel
-    const posts = await scraper.getChannelPosts('unicorns');
-    console.log(`Fetched ${posts.length} posts`);
+    const channels = [
+      { username: 'durov', name: 'Pavel Durov', category: 'tech', language: 'en' },
+      { username: 'telegram', name: 'Telegram News', category: 'tech', language: 'en' },
+      { username: 'startupoftheday', name: 'Startup of the Day', category: 'startup', language: 'ru' }
+    ];
 
-    // Process into articles
-    const articles = await scraper.processIntoArticles(posts);
-
-    // Save articles
-    for (const article of articles) {
-      await saveArticle(article);
+    for (const channel of channels) {
+      console.log(`Pulling content from @${channel.username}...`);
+      const result = await scraper.getChannelPosts(channel.username, 10);
+      
+      if (result.articles.length > 0) {
+        for (const article of result.articles) {
+          await saveArticle(article, channel.username);
+        }
+        console.log(`Saved ${result.articles.length} articles from @${channel.username}`);
+      } else {
+        console.log(`No new articles found from @${channel.username}`);
+      }
     }
-
-    console.log('Successfully processed all articles');
   } catch (error) {
-    console.error('Error processing content:', error);
+    console.error('Error pulling content:', error);
   }
 }
 
-// Run it
-pullAndProcessContent(); 
+// Run the script
+pullContent().catch(console.error); 
