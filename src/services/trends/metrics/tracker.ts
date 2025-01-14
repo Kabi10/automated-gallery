@@ -7,6 +7,12 @@ export interface ContentMetrics {
 
 export class PerformanceTracker {
   async trackContent(contentId: string): Promise<ContentMetrics> {
-    // Implementation
+    // Default implementation
+    return {
+      views: 0,
+      engagement: 0,
+      shareRate: 0,
+      viralScore: 0
+    };
   }
 } 

@@ -1,109 +1,154 @@
-# Tech Pulse Aggregator 🚀
+# Tech Pulse 🚀
 
-A modern content aggregation platform that collects and displays tech news and updates from various Telegram channels.
+A modern, AI-powered tech news aggregator built with Next.js 13, React, and Tailwind CSS. Tech Pulse curates the best content from multiple tech sources and provides a beautiful, performant interface to explore them.
 
-## Project Overview 🎯
+![Tech Pulse Screenshot](screenshot.png)
 
-Tech Pulse Aggregator automatically scrapes and aggregates content from curated Telegram channels, focusing on technology, startups, and business news. The platform provides a clean, organized interface for users to discover and consume relevant content.
+## ✨ Features
 
-## Features ✨
+### Core Functionality
+- 🔄 Multi-source news aggregation (Hacker News, Dev.to, Reddit)
+- 🤖 AI-powered article summaries
+- 🎯 Smart categorization and filtering
+- 🔍 Full-text search capabilities
+- 💭 Sentiment analysis for articles
 
-### Completed Features (80% Done)
-- ✅ Telegram channel scraping functionality
-- ✅ Multi-channel support with configurable sources
-- ✅ Content categorization and filtering
-- ✅ Language-based filtering
-- ✅ Modern responsive UI with Tailwind CSS
-- ✅ Database integration with Vercel Postgres
-- ✅ Channel configuration system
-- ✅ Automatic tag extraction
+### Technical Features
+- ⚡ Optimized performance with local caching
+- 🌙 Dark mode support
+- 🎨 Modern UI with glassmorphism effects
+- 📱 Fully responsive design
+- 🔄 Smart cache invalidation
+- ⌛ Last updated indicators
+- 🚦 Loading states and error handling
 
-### In Progress (15% Done)
-- 🔄 Content analytics and metrics
-- 🔄 Automated content updates
-- 🔄 Search functionality
-- 🔄 User preferences
+### UI Components
+- 🎴 Beautiful article cards with hover effects
+- 🏷️ Interactive tag system
+- 🔄 Smooth animations and transitions
+- 📊 Source badges with custom styling
+- 🎯 Filter system with visual feedback
 
-### Pending Development (5% Done)
-- 📋 User authentication
-- 📋 Bookmarking system
-- 📋 Content recommendations
-- 📋 API endpoints for external access
+## 🛠️ Tech Stack
 
-## Tech Stack 💻
+- **Framework**: Next.js 13 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **State Management**: React Hooks
+- **Data Fetching**: Native Fetch API
+- **Caching**: LocalStorage with smart invalidation
+- **Animations**: CSS Animations & Transitions
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
-- **Backend**: Node.js, TypeScript
-- **Database**: Vercel Postgres
-- **Content Source**: Telegram Web Scraping
-- **Deployment**: Vercel
+## 🚀 Getting Started
 
-## Getting Started 🚀
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/tech-pulse.git
+   cd tech-pulse
+   ```
 
-1. Clone the repository:
-```bash
-git clone https://github.com/Kabi10/automated-gallery.git
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   ```
+   Fill in your API keys and configuration
+
+4. **Run the development server**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)
+
+## 🔧 Configuration
+
+### Environment Variables
+```env
+NEXT_PUBLIC_API_URL=your_api_url
+# Add other necessary environment variables
 ```
 
-2. Install dependencies:
-```bash
-npm install
+### Cache Configuration
+The app uses local storage caching with the following defaults:
+- Cache Duration: 5 minutes
+- Cache Key: 'techpulse_cache'
+
+You can modify these in `src/app/page.tsx`:
+```typescript
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_KEY = 'techpulse_cache';
 ```
 
-3. Set up environment variables:
-- Copy `.env.example` to `.env.local`
-- Fill in your Vercel Postgres credentials
+## 📦 Project Structure
 
-4. Run the development server:
-```bash
-npm run dev
+```
+tech-pulse/
+├── src/
+│   ├── app/
+│   │   ├── page.tsx        # Main page component
+│   │   └── layout.tsx      # Root layout
+│   ├── components/
+│   │   └── news/
+│   │       ├── NewsCard.tsx    # Article card component
+│   │       ├── NewsGrid.tsx    # Grid layout component
+│   │       └── NewsFilters.tsx # Filtering component
+│   └── types/
+│       └── index.ts        # TypeScript definitions
+├── public/
+│   └── ...                 # Static assets
+└── ...                     # Config files
 ```
 
-5. Start the content scraper:
-```bash
-npm run scrape
+## 🎨 Customization
+
+### Styling
+The project uses Tailwind CSS for styling. You can customize the theme in `tailwind.config.js`:
+
+```javascript
+module.exports = {
+  theme: {
+    extend: {
+      // Add your custom theme configuration
+    }
+  }
+}
 ```
 
-## Features in Detail 🔍
+### Adding New Sources
+To add a new news source:
+1. Update the `NewsSource` type in `src/types/index.ts`
+2. Add source configuration in `NewsCard.tsx`
+3. Implement the API integration in your backend
 
-### Content Scraping
-- Automated scraping from public Telegram channels
-- Smart content parsing and cleaning
-- Automatic tag extraction from content
-- Multi-language support (EN, RU)
+## 🤝 Contributing
 
-### Content Management
-- Category-based organization
-- Language filtering
-- View count tracking
-- Content freshness monitoring
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-### User Interface
-- Responsive grid layout
-- Category and language filters
-- Clean, modern design
-- Optimized for reading
+## 📝 License
 
-## Contributing 🤝
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## 🙏 Acknowledgments
 
-## License 📄
+- Next.js team for the amazing framework
+- Tailwind CSS for the utility-first CSS framework
+- Various news sources for their content
+- Open source community for inspiration and tools
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+---
 
-## Success Metrics 📊
-- Content freshness: < 1 hour delay
-- Scraping accuracy: > 95%
-- User engagement: > 5 min average session
-- Content diversity: 5+ categories
-- Channel reliability: > 90% uptime
-
-## Next Steps 🎯
-1. Implement real-time content updates
-2. Add user authentication
-3. Enhance content filtering
-4. Develop recommendation system
-5. Add analytics dashboard
-6. Implement image scraping
-7. Add content summarization with AI 
+Built with ❤️ by [Your Name] 

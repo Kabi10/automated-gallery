@@ -6,16 +6,21 @@ export class TelegramContentEnhancer {
   async enhanceContent(text: string): Promise<string> {
     const prompt = {
       topic: text,
-      style: 'informative',
+      style: 'informative' as const,
       targetLength: 800,
       keywords: this.extractKeywords(text)
     };
 
-    return await this.ai.generateArticle(prompt);
+    const result = await this.ai.generateArticle(prompt);
+    return result || text; // Return original text if generation fails
   }
 
   private extractKeywords(text: string): string[] {
-    // Implementation
-    return [];
+    // Basic implementation
+    return text
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(word => word.length > 4)
+      .slice(0, 5);
   }
 } 

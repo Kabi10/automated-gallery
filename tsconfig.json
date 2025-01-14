@@ -9,7 +9,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": "./",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "baseUrl": ".",
@@ -20,6 +20,7 @@
     "noEmit": true,
     "incremental": true,
     "isolatedModules": true,
+    "strictPropertyInitialization": false,
     "plugins": [
       {
         "name": "next"

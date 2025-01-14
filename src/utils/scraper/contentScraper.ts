@@ -1,13 +1,25 @@
-import { ScrapedContent } from './types';
+import { ScrapedContent, TrendingTopic } from './types';
 
 export class ContentScraper {
-  private sources: string[];
+  private sources: string[] = [];
   
   async scrapeContent(url: string): Promise<ScrapedContent> {
-    // Implementation for scraping content
+    // Default implementation
+    return {
+      url,
+      title: '',
+      content: '',
+      images: [],
+      metadata: {
+        publishDate: new Date(),
+        category: '',
+        tags: []
+      }
+    };
   }
   
   async detectTrends(): Promise<TrendingTopic[]> {
-    // Implementation for trend detection
+    // Default implementation
+    return [];
   }
 } 

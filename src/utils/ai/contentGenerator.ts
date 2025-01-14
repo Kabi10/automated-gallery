@@ -6,11 +6,13 @@ interface ContentPrompt {
 }
 
 export class ContentGenerator {
-  async generateArticle(prompt: ContentPrompt) {
-    // Implementation using GPT API
+  async generateArticle(prompt: ContentPrompt): Promise<string> {
+    // Default implementation
+    return `Generated article about ${prompt.topic} (${prompt.style}, ${prompt.targetLength} words)`;
   }
   
-  async optimizeForViral(content: string) {
-    // Viral optimization logic
+  async optimizeForViral(content: string): Promise<string> {
+    // Default implementation
+    return content;
   }
 } 

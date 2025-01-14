@@ -1,6 +1,12 @@
-import { TelegramScraper } from '@/utils/telegram/telegramScraper';
-import { logger } from '@/utils/logger';
-import { saveArticle } from '@/lib/db';
+import { TelegramScraper } from '../services/scraper/telegram/telegramScraper';
+import { Article } from '../services/scraper/telegram/types';
+import { saveArticle } from '../lib/db';
+import { logger } from '../services/scraper/logger';
+import { loadEnv, validateEnv } from '../lib/env';
+
+// Load environment variables
+loadEnv();
+validateEnv();
 
 const CHANNELS = [
   { username: 'durov', name: 'Pavel Durov', category: 'tech', language: 'en' },

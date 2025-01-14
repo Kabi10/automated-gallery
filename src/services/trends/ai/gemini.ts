@@ -5,7 +5,7 @@ const getGeminiClient = () => {
   // Use NEXT_PUBLIC prefix for client-side access
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('Gemini API key not configured. Please set NEXT_PUBLIC_GOOGLE_GEMINI_API_KEY in your environment variables.');
+    return null;
   }
   return new GoogleGenerativeAI(apiKey);
 };
@@ -19,9 +19,14 @@ export interface ImageAnalysisResult {
   composition: string;
 }
 
-export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResult> {
+export async function analyzeImage(imageUrl: string): Promise<ImageAnalysisResult | null> {
   try {
     const genAI = getGeminiClient();
+    if (!genAI) {
+      console.warn('Gemini API key not configured. Image analysis will be skipped.');
+      return null;
+    }
+
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     
     // Fetch the image and convert to base64
