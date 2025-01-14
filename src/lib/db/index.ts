@@ -83,19 +83,32 @@ export async function getLatestArticles(
   language?: string
 ): Promise<ContentItem[]> {
   try {
-    let queryText = `
+    let conditions = [];
+    let params: (string | number)[] = [limit, offset];
+    let paramCount = 3;
+
+    if (category) {
+      conditions.push(`category = $${paramCount}`);
+      params.push(category);
+      paramCount++;
+    }
+    
+    if (language) {
+      conditions.push(`language = $${paramCount}`);
+      params.push(language);
+    }
+
+    const whereClause = conditions.length > 0 
+      ? 'WHERE ' + conditions.join(' AND ')
+      : '';
+
+    const queryText = `
       SELECT * FROM articles
-      WHERE 1=1
-      ${category ? 'AND category = $3' : ''}
-      ${language ? 'AND language = $4' : ''}
+      ${whereClause}
       ORDER BY publish_date DESC
       LIMIT $1::integer
       OFFSET $2::integer
     `;
-
-    const params = [limit, offset];
-    if (category) params.push(category);
-    if (language) params.push(language);
 
     const { rows } = await sql.query(queryText, params);
     return (rows as DbArticle[]).map(mapDbArticleToContentItem);
